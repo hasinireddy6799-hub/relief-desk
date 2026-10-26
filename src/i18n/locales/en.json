@@ -1,0 +1,84 @@
+{
+  "common": {
+    "appName": "Relief Desk",
+    "online": "Online",
+    "offline": "Offline",
+    "queued": "queued",
+    "syncing": "Syncing...",
+    "synced": "Synced",
+    "needsAttention": "Needs attention",
+    "retry": "Retry",
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "close": "Close",
+    "delete": "Delete",
+    "anonymous": "Guest",
+    "signOut": "Sign Out",
+    "signIn": "Sign In",
+    "signUp": "Sign Up"
+  },
+  "nav": {
+    "map": "Live Map",
+    "report": "Report",
+    "help": "Help Requests",
+    "shelters": "Shelters",
+    "more": "More"
+  },
+  "status": {
+    "onlineStatus": "Online ({{count}} queued)",
+    "offlineStatus": "Offline ({{count}} queued)",
+    "syncingStatus": "Syncing..."
+  },
+  "sos": {
+    "button": "SOS",
+    "emergencySOS": "Emergency SOS",
+    "countdownTitle": "Sending Emergency SOS",
+    "countdownText": "Dispatching critical help to your live GPS coordinates in {{seconds}}s...",
+    "cancelSOS": "Cancel SOS",
+    "triggerNow": "Send Now"
+  },
+  "roles": {
+    "citizen": "Citizen",
+    "volunteer": "Volunteer",
+    "coordinator": "Coordinator",
+    "admin": "Admin"
+  },
+  "severity": {
+    "low": "Low",
+    "moderate": "Moderate",
+    "high": "High",
+    "critical": "Critical"
+  },
+  "incidentTypes": {
+    "Flood": "Flood",
+    "Fire": "Fire",
+    "Earthquake": "Earthquake",
+    "Cyclone damage": "Cyclone Damage",
+    "Landslide": "Landslide",
+    "Road blockage": "Road Blockage",
+    "Medical emergency": "Medical Emergency",
+    "Power outage": "Power Outage",
+    "Emergency SOS": "Emergency SOS",
+    "Other": "Other"
+  },
+  "auth": {
+    "title": "Account & Role",
+    "guestNotice": "You are currently signed in as an Anonymous Guest. You can still report emergencies and trigger SOS.",
+    "emailLabel": "Email address",
+    "passwordLabel": "Password",
+    "fullNameLabel": "Full Name",
+    "switchSignIn": "Have an account? Sign in",
+    "switchSignUp": "Need an account? Sign up",
+    "signedInAs": "Signed in as"
+  },
+  "more": {
+    "title": "More & Settings",
+    "language": "Language",
+    "lowDataMode": "Low-Data Mode",
+    "lowDataDesc": "Reduces map tile downloads and disables automatic photo downloads",
+    "role": "Current Role",
+    "version": "Version 0.1.0 (PWA)"
+  }
+}

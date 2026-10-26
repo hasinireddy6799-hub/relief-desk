@@ -1,0 +1,84 @@
+{
+  "common": {
+    "appName": "Relief Desk",
+    "online": "En línea",
+    "offline": "Desconectado",
+    "queued": "en cola",
+    "syncing": "Sincronizando...",
+    "synced": "Sincronizado",
+    "needsAttention": "Requiere atención",
+    "retry": "Reintentar",
+    "loading": "Cargando...",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "close": "Cerrar",
+    "delete": "Eliminar",
+    "anonymous": "Invitado",
+    "signOut": "Cerrar sesión",
+    "signIn": "Iniciar sesión",
+    "signUp": "Registrarse"
+  },
+  "nav": {
+    "map": "Mapa en vivo",
+    "report": "Reportar",
+    "help": "Solicitudes",
+    "shelters": "Refugios",
+    "more": "Más"
+  },
+  "status": {
+    "onlineStatus": "En línea ({{count}} en cola)",
+    "offlineStatus": "Desconectado ({{count}} en cola)",
+    "syncingStatus": "Sincronizando..."
+  },
+  "sos": {
+    "button": "SOS",
+    "emergencySOS": "SOS de Emergencia",
+    "countdownTitle": "Enviando SOS de Emergencia",
+    "countdownText": "Enviando ayuda crítica a sus coordenadas GPS en {{seconds}}s...",
+    "cancelSOS": "Cancelar SOS",
+    "triggerNow": "Enviar ahora"
+  },
+  "roles": {
+    "citizen": "Ciudadano",
+    "volunteer": "Voluntario",
+    "coordinator": "Coordinador",
+    "admin": "Administrador"
+  },
+  "severity": {
+    "low": "Bajo",
+    "moderate": "Moderado",
+    "high": "Alto",
+    "critical": "Crítico"
+  },
+  "incidentTypes": {
+    "Flood": "Inundación",
+    "Fire": "Incendio",
+    "Earthquake": "Terremoto",
+    "Cyclone damage": "Daños por ciclón",
+    "Landslide": "Deslizamiento",
+    "Road blockage": "Bloqueo de carretera",
+    "Medical emergency": "Emergencia médica",
+    "Power outage": "Corte de energía",
+    "Emergency SOS": "SOS de Emergencia",
+    "Other": "Otro"
+  },
+  "auth": {
+    "title": "Cuenta y Rol",
+    "guestNotice": "Actualmente ha iniciado sesión como invitado anónimo. Aún puede informar emergencias y activar SOS.",
+    "emailLabel": "Correo electrónico",
+    "passwordLabel": "Contraseña",
+    "fullNameLabel": "Nombre completo",
+    "switchSignIn": "¿Ya tienes una cuenta? Iniciar sesión",
+    "switchSignUp": "¿Necesitas una cuenta? Regístrate",
+    "signedInAs": "Sesión iniciada como"
+  },
+  "more": {
+    "title": "Más y Ajustes",
+    "language": "Idioma",
+    "lowDataMode": "Modo de bajo consumo de datos",
+    "lowDataDesc": "Reduce la descarga de mapas y fotos",
+    "role": "Rol actual",
+    "version": "Versión 0.1.0 (PWA)"
+  }
+}
