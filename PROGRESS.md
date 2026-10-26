@@ -12,21 +12,32 @@
   - PWA manifest and Workbox service worker generated.
   - Automated Vitest test suite passing (8/8 tests).
 
+- **Stage 2: Map and incidents** (Completed: 2026-10-27)
+  - Interactive Leaflet map with custom offline SVG DivIcons (shape + icon + label + dynamic size scaling with confirmations).
+  - Supercluster integration for smooth zoom-dependent marker clustering and expansion.
+  - User GPS geolocation hook (`useUserLocation`) with draggable pin, accuracy circle, and "Centre on me" control.
+  - Realtime incident syncing via Supabase Realtime channel and Dexie local IndexedDB cache.
+  - Comprehensive filters: type, severity (1-4), status (active vs all), and text search.
+  - Full offline-ready incident reporting form (`/report`): type selector, severity level cards, people affected counter, landmark field, and HTML5 canvas browser-side photo compressor (~1280px / 200KB).
+  - Responsive desktop split layout (map left, incident list right) and mobile toggle view.
+  - Vitest test suite expanded and passing (13/13 tests).
+
 ## What to Test
-Open the app, check bottom navigation between the 5 tabs, verify the header Online status pill, tap the floating SOS button to see the 5-second countdown with Cancel, and toggle language/sign-in in the More tab.
+Open the live map to see your GPS pin and nearby hazards, use the severity/type filters, switch between Map and List views, and submit a new report via the Report tab to verify instant local pin placement and outbox queuing.
 
 ## Next Stage
-- **Stage 2: Map and incidents**
-  - Leaflet + react-leaflet interactive map setup with custom pins and clustering.
-  - User GPS auto-location with draggable pin and manual fallback.
-  - Incident list and reporting form with type, severity (1-4), people affected, and description.
-  - Realtime subscriptions via Supabase Realtime and filter controls (type, severity, status).
+- **Stage 3: Duplicates, SOS, confirmations, photos, workflow**
+  - Duplicate detection flow calling `find_duplicate()` and offline distance/text similarity comparison.
+  - SOS countdown flow and emergency alert creation.
+  - "I see this too" confirmation action (`incident_confirmations`).
+  - Incident media photo upload to `incident-photos` bucket.
+  - Incident update timeline (`incident_updates`).
 
 ## Decisions Made
-- Used system font stack and bundled Lucide SVG icons directly to ensure 100% offline functionality without CDN dependencies.
-- Configured `.npmrc` with `/tmp/.npm-cache` to avoid cache permissions issues.
-- Integrated Dexie `useLiveQuery` to reactively update the outbox queue counter in `StatusPill`.
-- Kept anonymous auth as default fallback so emergency SOS and reporting are never blocked behind an authentication wall.
+- Used custom Leaflet DivIcons with SVG markup rather than external image icons so map pins are 100% offline-functional without missing asset errors.
+- Integrated `supercluster` for map clustering due to its zero external runtime dependencies and smooth performance.
+- Implemented in-browser image compression using HTML5 Canvas to strictly adhere to the ~1280px / 200KB bandwidth-saving target without extra npm bundle bloat.
+- Maintained optimistic IndexedDB writes for all incident reporting so reports appear immediately even when offline.
 
 ## Known Bugs
 - None currently known.
