@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/db/dexie';
 import { Incident } from '@/types/database';
 import { useAuth } from '@/context/AuthContext';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { confirmIncident, hasUserConfirmedIncident } from '@/services/incidentService';
-import { Users, AlertTriangle, MapPin, CheckCircle, Flame, Clock, CheckCircle2 } from 'lucide-react';
+import {
+  Users,
+  AlertTriangle,
+  MapPin,
+  CheckCircle,
+  Flame,
+  Clock,
+  CheckCircle2,
+  CloudOff,
+  Cloud,
+} from 'lucide-react';
 
 interface IncidentCardProps {
   incident: Incident;
@@ -22,6 +34,12 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
   const isOnline = useOnlineStatus();
   const [hasConfirmed, setHasConfirmed] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+
+  // Check if this incident has an outbox entry pending sync
+  const outboxItem = useLiveQuery(
+    () => db.outbox.where('clientId').equals(incident.client_id).first(),
+    [incident.client_id]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -144,6 +162,18 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
               {incident.type}
             </h3>
             {getStatusBadge()}
+            {outboxItem && (outboxItem.status === 'pending' || outboxItem.status === 'syncing') && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800 flex items-center gap-1">
+                <CloudOff className="w-3 h-3 text-amber-600" />
+                <span>Queued, not synced</span>
+              </span>
+            )}
+            {outboxItem && outboxItem.status === 'synced' && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 flex items-center gap-1">
+                <Cloud className="w-3 h-3 text-emerald-600" />
+                <span>Synced</span>
+              </span>
+            )}
           </div>
           {incident.address_label && (
             <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">

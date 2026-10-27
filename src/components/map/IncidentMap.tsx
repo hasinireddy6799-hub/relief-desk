@@ -3,7 +3,8 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } 
 import Supercluster from 'supercluster';
 import { Incident } from '@/types/database';
 import { createSeverityIcon, createUserLocationIcon, createClusterIcon } from './mapIcons';
-import { Locate, Users, AlertTriangle } from 'lucide-react';
+import { RadarMapFallback } from './RadarMapFallback';
+import { Locate, Users, AlertTriangle, Radio } from 'lucide-react';
 import L from 'leaflet';
 
 interface IncidentMapProps {
@@ -77,6 +78,7 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({
   ]);
   const [zoom, setZoom] = useState<number>(13);
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
+  const [useRadarFallback, setUseRadarFallback] = useState<boolean>(false);
 
   // Initialize Supercluster
   const supercluster = useMemo(() => {
@@ -124,6 +126,17 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({
     const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(clusterId), 18);
     mapInstance.flyTo([lat, lng], expansionZoom, { duration: 0.8 });
   };
+
+  if (useRadarFallback) {
+    return (
+      <RadarMapFallback
+        incidents={incidents}
+        userCoords={userCoords}
+        onSelectIncident={onSelectIncident}
+        onSwitchToTiles={() => setUseRadarFallback(false)}
+      />
+    );
+  }
 
   return (
     <div className="relative w-full h-full min-h-[400px] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm z-0">
@@ -292,7 +305,7 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({
         })}
       </MapContainer>
 
-      {/* Floating Map Controls: "Center on me" */}
+      {/* Floating Map Controls */}
       <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
         <button
           onClick={handleRecenter}
@@ -300,6 +313,15 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({
           className="w-11 h-11 rounded-xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 shadow-md flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition"
         >
           <Locate className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        </button>
+
+        <button
+          onClick={() => setUseRadarFallback(true)}
+          title="Switch to Offline Radar Grid"
+          aria-label="Switch to Offline Radar Grid"
+          className="w-11 h-11 rounded-xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 shadow-md flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition"
+        >
+          <Radio className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
         </button>
       </div>
     </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { useOutbox } from '@/hooks/useOutbox';
+import { OutboxModal } from '@/components/common/OutboxModal';
 import {
   Globe,
   User,
@@ -11,6 +12,7 @@ import {
   LogOut,
   UserPlus,
   RefreshCw,
+  ExternalLink,
 } from 'lucide-react';
 
 export const MorePage: React.FC = () => {
@@ -24,6 +26,7 @@ export const MorePage: React.FC = () => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+  const [showOutboxModal, setShowOutboxModal] = useState(false);
   const [lowDataMode, setLowDataMode] = useState(() => {
     return localStorage.getItem('relief_desk_low_data') === 'true';
   });
@@ -279,11 +282,20 @@ export const MorePage: React.FC = () => {
 
       {/* Offline Storage & Outbox Stats */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-3">
-        <div className="flex items-center gap-2">
-          <Database className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
-            Local Outbox & Storage
-          </h2>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Database className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+              Local Outbox & Storage
+            </h2>
+          </div>
+          <button
+            onClick={() => setShowOutboxModal(true)}
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+          >
+            <span>Manage Queue</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </button>
         </div>
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
@@ -310,6 +322,10 @@ export const MorePage: React.FC = () => {
       <div className="text-center text-xs text-slate-400 dark:text-slate-500 py-2">
         {t('more.version')}
       </div>
+
+      {showOutboxModal && (
+        <OutboxModal onClose={() => setShowOutboxModal(false)} />
+      )}
     </div>
   );
 };

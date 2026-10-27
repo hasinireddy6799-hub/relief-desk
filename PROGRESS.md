@@ -31,17 +31,24 @@
   - Comprehensive `IncidentDetailModal` featuring situation overview, photo gallery with lightbox view, responder status workflow actions (Verify -> Responding -> Resolved), note posting, and chronological update timeline (`incident_updates`).
   - Vitest test suite expanded to 27/27 passing tests.
 
+- **Stage 4: Complete offline engine** (Completed: 2026-10-27)
+  - Full-featured background sync engine (`syncEngine.ts`) with priority ordering (SOS first, then incidents, confirmations, photos, updates, others).
+  - Exponential backoff retry engine (1s, 2s, 4s, 8s, 16s, capped at 60s) with permanent failure threshold after 5 attempts.
+  - Interactive `OutboxModal` ("Needs attention" and "Pending" queues) with individual retry, retry all, and dismiss capabilities, accessible from the header status pill and More page.
+  - Reconnection sync toast notifications and "Queued, not synced" vs "Synced" badges on incident cards.
+  - Tactical SVG `RadarMapFallback` grid with range circles (500m to 20km), compass crosshairs, and relative pin plotting for 100% offline map visualization when tiles are unavailable.
+  - Workbox runtime caching in `vite.config.ts`: CacheFirst for map tiles capped at 500 entries, StaleWhileRevalidate for assets, NetworkFirst for REST.
+  - Low-data mode integration: disables automatic photo downloads and shrinks query radius.
+  - Vitest test suite expanded to 35/35 passing tests.
+
 ## What to Test
-Tap any incident on the map or list to view its detail modal, test the "I see this too" confirmation button, submit a report with matching type/location to trigger the duplicate warning modal, and test the 5-second SOS countdown trigger.
+Click the header status pill to inspect the Outbox queue modal, tap the green radar icon on the map to switch to the tactical radar grid fallback, toggle low-data mode in More, and verify reconnection sync toasts when reconnecting online.
 
 ## Next Stage
-- **Stage 4: Complete offline engine**
-  - Outbox sync engine with all rules (SOS priority, retry with exponential backoff, status ordering).
-  - Permanent failure handling and "Needs attention" list with manual Retry button.
-  - Service worker precaching, stale-while-revalidate for reads, and dynamic map tile caching (capped at ~500 tiles).
-  - Offline radar-style grid map fallback when tiles are unavailable.
-  - Low-data mode toggle (skip auto photo loading, reduce radius).
-  - Vitest tests for outbox sync engine, retry ordering, and idempotency.
+- **Stage 5: Shelters, supplies, help requests**
+  - Help request submission form and prioritized volunteer queue with status transitions (`open` -> `matched` -> `in_progress` -> `fulfilled`).
+  - Shelter list and map with capacity bar, amenities, distance, and volunteer check-in / check-out through `shelter_checkins`.
+  - Supplies inventory management with stock vs minimum warning (`low_stock` view) and transactions through `supply_transactions`.
 
 ## Decisions Made
 - Used custom Leaflet DivIcons with SVG markup rather than external image icons so map pins are 100% offline-functional without missing asset errors.
@@ -50,6 +57,8 @@ Tap any incident on the map or list to view its detail modal, test the "I see th
 - Maintained optimistic IndexedDB writes for all incident reporting so reports appear immediately even when offline.
 - Implemented client-side trigram similarity matching PostgreSQL `pg_trgm` so offline duplicate detection logic produces results identical to the server `find_duplicate()` function.
 - Added Web Audio API synthesizer for countdown and SOS tones to ensure zero external media file assets are needed offline.
+- Built a tactical radar-style canvas/grid fallback so users can visually locate nearby hazards relative to their compass bearing even when no map tiles are cached or downloaded.
+- Enforced strict outbox priority upload ordering (SOS always takes precedence over standard records) with client-side exponential backoff.
 
 ## Known Bugs
 - None currently known.

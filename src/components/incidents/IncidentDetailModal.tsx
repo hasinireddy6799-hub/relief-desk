@@ -58,6 +58,8 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
   // Photo upload state
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<string | null>(null);
+  const isLowData = typeof window !== 'undefined' && localStorage.getItem('relief_desk_low_data') === 'true';
+  const [allowPhotoLoad, setAllowPhotoLoad] = useState(!isLowData);
 
   // Responders access check: volunteer, coordinator, admin
   const isResponder = user?.role && ['volunteer', 'coordinator', 'admin'].includes(user.role);
@@ -344,30 +346,45 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
             </div>
 
             {media.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                {media.map((item: IncidentMedia) => {
-                  const src = item.local_data_url || item.signed_url;
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => src && setSelectedPhotoPreview(src)}
-                      className="relative h-28 sm:h-32 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 cursor-pointer group"
-                    >
-                      {src ? (
-                        <img
-                          src={src}
-                          alt="Incident verification"
-                          className="w-full h-full object-cover group-hover:scale-105 transition"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400">
-                          Photo Pending Sync
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              isLowData && !allowPhotoLoad ? (
+                <div className="p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 text-center space-y-2">
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    Low-data mode active. {media.length} photo{media.length > 1 ? 's' : ''} available.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setAllowPhotoLoad(true)}
+                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition"
+                  >
+                    Load Ground Photos
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {media.map((item: IncidentMedia) => {
+                    const src = item.local_data_url || item.signed_url;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => src && setSelectedPhotoPreview(src)}
+                        className="relative h-28 sm:h-32 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 cursor-pointer group"
+                      >
+                        {src ? (
+                          <img
+                            src={src}
+                            alt="Incident verification"
+                            className="w-full h-full object-cover group-hover:scale-105 transition"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400">
+                            Photo Pending Sync
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )
             ) : (
               <p className="text-xs text-slate-400 italic">No ground photos attached yet.</p>
             )}
