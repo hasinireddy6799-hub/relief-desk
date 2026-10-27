@@ -80,6 +80,17 @@ export interface IncidentMedia {
   storage_path: string;
   uploaded_by: string | null;
   created_at: string;
+  local_data_url?: string;
+  signed_url?: string;
+}
+
+export interface DuplicateMatch {
+  id: string;
+  type: IncidentType;
+  description: string | null;
+  distance_m: number;
+  text_score: number;
+  confirmations: number;
 }
 
 export interface Shelter {

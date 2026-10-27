@@ -1,20 +1,59 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertOctagon, X, Send } from 'lucide-react';
 import { db } from '@/db/dexie';
-import { generateClientId, formatPoint } from '@/lib/supabase';
+import { supabase, generateClientId, formatPoint } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 export const FloatingSOSButton: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const isOnline = useOnlineStatus();
   const [isOpen, setIsOpen] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(5);
   const [isSent, setIsSent] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const playTone = (freq: number, durationSec: number) => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioCtx();
+      }
+      const ctx = audioContextRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationSec);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + durationSec);
+    } catch {
+      // Audio playback fails silently if restricted
+    }
+  };
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isOpen && secondsLeft > 0 && !isSent) {
+      // Audio & haptic cue on each tick
+      playTone(600 + (5 - secondsLeft) * 100, 0.15);
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate(100);
+        } catch {
+          // ignore
+        }
+      }
+
       timer = setTimeout(() => {
         setSecondsLeft((s) => s - 1);
       }, 1000);
@@ -37,6 +76,16 @@ export const FloatingSOSButton: React.FC = () => {
 
   const triggerSOS = async () => {
     setIsSent(true);
+
+    // Audio confirmation & stronger haptic
+    playTone(1200, 0.4);
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate([200, 100, 300]);
+      } catch {
+        // ignore
+      }
+    }
 
     // Get current GPS coords or default fallback
     let lng = 78.9629;
@@ -86,37 +135,66 @@ export const FloatingSOSButton: React.FC = () => {
     // Store in IndexedDB cache and outbox (highest priority)
     try {
       await db.incidents.put(sosIncident);
+
+      // Add timeline entry
+      await db.incident_updates.put({
+        id: Date.now(),
+        incident_id: clientId,
+        author: user?.id || null,
+        kind: 'status_change',
+        old_status: null,
+        new_status: 'reported',
+        note: 'Emergency SOS broadcasted from device',
+        created_at: now,
+      });
+
+      const outboxPayload = {
+        client_id: clientId,
+        type: 'Emergency SOS',
+        severity: 4,
+        status: 'reported',
+        description: 'EMERGENCY SOS: Immediate rescue or assistance requested!',
+        address_label: 'Live GPS SOS',
+        people_affected: 1,
+        location: formatPoint(lng, lat),
+        is_sos: true,
+        confirmations: 1,
+        reported_by: user?.id || null,
+      };
+
       await db.outbox.add({
         table: 'incidents',
         op: 'INSERT',
-        payload: {
-          client_id: clientId,
-          type: 'Emergency SOS',
-          severity: 4,
-          status: 'reported',
-          description: 'EMERGENCY SOS: Immediate rescue or assistance requested!',
-          address_label: 'Live GPS SOS',
-          people_affected: 1,
-          location: formatPoint(lng, lat),
-          is_sos: true,
-          confirmations: 1,
-          reported_by: user?.id || null,
-        },
+        payload: outboxPayload,
         clientId,
         createdAt: now,
         attempts: 0,
         status: 'pending',
         is_sos: true,
       });
+
+      // Direct write if online
+      if (isOnline) {
+        try {
+          const { error: upsertErr } = await supabase
+            .from('incidents')
+            .upsert(outboxPayload, { onConflict: 'client_id', ignoreDuplicates: true });
+          if (!upsertErr) {
+            await db.outbox.where('clientId').equals(clientId).modify({ status: 'synced' });
+          }
+        } catch (netErr) {
+          console.warn('Direct SOS upload deferred to outbox:', netErr);
+        }
+      }
     } catch (err) {
       console.error('Failed to queue SOS incident:', err);
     }
 
-    // Keep feedback visible for 2 seconds before closing
+    // Keep feedback visible for 2.5 seconds before closing
     setTimeout(() => {
       setIsOpen(false);
       setIsSent(false);
-    }, 2000);
+    }, 2500);
   };
 
   return (

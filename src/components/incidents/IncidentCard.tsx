@@ -1,18 +1,56 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Incident } from '@/types/database';
-import { Users, AlertTriangle, MapPin, CheckCircle, Flame, Clock } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { confirmIncident, hasUserConfirmedIncident } from '@/services/incidentService';
+import { Users, AlertTriangle, MapPin, CheckCircle, Flame, Clock, CheckCircle2 } from 'lucide-react';
 
 interface IncidentCardProps {
   incident: Incident;
   isSelected?: boolean;
   onSelect?: (incident: Incident) => void;
+  onConfirmed?: () => void;
 }
 
 export const IncidentCard: React.FC<IncidentCardProps> = ({
   incident,
   isSelected,
   onSelect,
+  onConfirmed,
 }) => {
+  const { user } = useAuth();
+  const isOnline = useOnlineStatus();
+  const [hasConfirmed, setHasConfirmed] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    hasUserConfirmedIncident(incident.id, user?.id).then((confirmed) => {
+      if (mounted) setHasConfirmed(confirmed);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [incident.id, user?.id]);
+
+  const handleQuickConfirm = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (hasConfirmed || isConfirming) return;
+    setIsConfirming(true);
+
+    const res = await confirmIncident({
+      incidentId: incident.id,
+      userId: user?.id,
+      note: 'I see this too',
+      isOnline,
+    });
+
+    if (res.success) {
+      setHasConfirmed(true);
+      onConfirmed?.();
+    }
+    setIsConfirming(false);
+  };
   const getSeverityBadge = () => {
     switch (incident.severity) {
       case 4:
@@ -125,14 +163,33 @@ export const IncidentCard: React.FC<IncidentCardProps> = ({
 
       <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300">
-            <Users className="w-3.5 h-3.5 text-slate-400" />
-            {incident.confirmations} confirmed
-          </span>
+          <button
+            type="button"
+            onClick={handleQuickConfirm}
+            disabled={hasConfirmed || isConfirming}
+            className={`min-h-[36px] px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+              hasConfirmed
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800'
+                : 'bg-slate-100 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-950/60 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700'
+            }`}
+          >
+            {hasConfirmed ? (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Confirmed</span>
+              </>
+            ) : (
+              <>
+                <Users className="w-3.5 h-3.5" />
+                <span>{isConfirming ? '...' : `I see this (${incident.confirmations})`}</span>
+              </>
+            )}
+          </button>
+
           {incident.people_affected > 0 && (
-            <span className="flex items-center gap-1 text-red-600 dark:text-red-400 font-semibold">
+            <span className="flex items-center gap-1 text-red-600 dark:text-red-400 font-semibold text-[11px]">
               <AlertTriangle className="w-3.5 h-3.5" />
-              {incident.people_affected} affected
+              {incident.people_affected}
             </span>
           )}
         </div>

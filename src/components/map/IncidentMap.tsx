@@ -277,6 +277,14 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({
                       </span>
                     )}
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => onSelectIncident?.(inc)}
+                    className="w-full py-1.5 px-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold text-center shadow-sm transition"
+                  >
+                    View Details & Timeline
+                  </button>
                 </div>
               </Popup>
             </Marker>

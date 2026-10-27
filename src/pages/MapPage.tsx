@@ -4,6 +4,7 @@ import { useUserLocation } from '@/hooks/useUserLocation';
 import { IncidentMap } from '@/components/map/IncidentMap';
 import { IncidentFiltersBar } from '@/components/incidents/IncidentFiltersBar';
 import { IncidentList } from '@/components/incidents/IncidentList';
+import { IncidentDetailModal } from '@/components/incidents/IncidentDetailModal';
 import { Incident } from '@/types/database';
 import { Map, List } from 'lucide-react';
 
@@ -13,14 +14,12 @@ export const MapPage: React.FC = () => {
     useIncidents(coords);
 
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [mobileView, setMobileView] = useState<'map' | 'list'>('map');
 
   const handleSelectIncident = (incident: Incident) => {
     setSelectedIncident(incident);
-    // On mobile, if in list view and an incident is selected, switch to map to focus it
-    if (mobileView === 'list') {
-      setMobileView('map');
-    }
+    setShowDetailModal(true);
   };
 
   return (
@@ -93,6 +92,18 @@ export const MapPage: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Incident Detail / Timeline Modal */}
+      {showDetailModal && selectedIncident && (
+        <IncidentDetailModal
+          incident={selectedIncident}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedIncident(null);
+          }}
+          onIncidentUpdated={refetch}
+        />
+      )}
     </div>
   );
 };

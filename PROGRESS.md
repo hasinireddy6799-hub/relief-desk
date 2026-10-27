@@ -22,22 +22,34 @@
   - Responsive desktop split layout (map left, incident list right) and mobile toggle view.
   - Vitest test suite expanded and passing (13/13 tests).
 
+- **Stage 3: Duplicates, SOS, confirmations, photos, workflow** (Completed: 2026-10-27)
+  - Duplicate detection engine with `find_duplicate()` RPC integration and offline fallback using Haversine distance and `pg_trgm`-compatible trigram similarity.
+  - Interactive `DuplicateWarningModal` with "Add my report to it" (confirmation flow) and "Submit as new incident".
+  - Enhanced floating SOS emergency broadcast with 5-second countdown, Web Audio pitch cues, haptic vibration, highest-priority outbox queuing (`is_sos: true`), and automatic critical pin placement.
+  - "I see this too" confirmation action with optimistic local IndexedDB counter bumps, duplicate confirmation prevention, and sync to `incident_confirmations`.
+  - Photo attachment pipeline storing locally in Dexie `incident_media` and syncing to Supabase Storage `incident-photos` bucket (`<user_id>/<file_id>.jpg`).
+  - Comprehensive `IncidentDetailModal` featuring situation overview, photo gallery with lightbox view, responder status workflow actions (Verify -> Responding -> Resolved), note posting, and chronological update timeline (`incident_updates`).
+  - Vitest test suite expanded to 27/27 passing tests.
+
 ## What to Test
-Open the live map to see your GPS pin and nearby hazards, use the severity/type filters, switch between Map and List views, and submit a new report via the Report tab to verify instant local pin placement and outbox queuing.
+Tap any incident on the map or list to view its detail modal, test the "I see this too" confirmation button, submit a report with matching type/location to trigger the duplicate warning modal, and test the 5-second SOS countdown trigger.
 
 ## Next Stage
-- **Stage 3: Duplicates, SOS, confirmations, photos, workflow**
-  - Duplicate detection flow calling `find_duplicate()` and offline distance/text similarity comparison.
-  - SOS countdown flow and emergency alert creation.
-  - "I see this too" confirmation action (`incident_confirmations`).
-  - Incident media photo upload to `incident-photos` bucket.
-  - Incident update timeline (`incident_updates`).
+- **Stage 4: Complete offline engine**
+  - Outbox sync engine with all rules (SOS priority, retry with exponential backoff, status ordering).
+  - Permanent failure handling and "Needs attention" list with manual Retry button.
+  - Service worker precaching, stale-while-revalidate for reads, and dynamic map tile caching (capped at ~500 tiles).
+  - Offline radar-style grid map fallback when tiles are unavailable.
+  - Low-data mode toggle (skip auto photo loading, reduce radius).
+  - Vitest tests for outbox sync engine, retry ordering, and idempotency.
 
 ## Decisions Made
 - Used custom Leaflet DivIcons with SVG markup rather than external image icons so map pins are 100% offline-functional without missing asset errors.
 - Integrated `supercluster` for map clustering due to its zero external runtime dependencies and smooth performance.
 - Implemented in-browser image compression using HTML5 Canvas to strictly adhere to the ~1280px / 200KB bandwidth-saving target without extra npm bundle bloat.
 - Maintained optimistic IndexedDB writes for all incident reporting so reports appear immediately even when offline.
+- Implemented client-side trigram similarity matching PostgreSQL `pg_trgm` so offline duplicate detection logic produces results identical to the server `find_duplicate()` function.
+- Added Web Audio API synthesizer for countdown and SOS tones to ensure zero external media file assets are needed offline.
 
 ## Known Bugs
 - None currently known.

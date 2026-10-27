@@ -7,7 +7,10 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { db } from '@/db/dexie';
 import { supabase, generateClientId, formatPoint } from '@/lib/supabase';
 import { compressImage } from '@/utils/imageCompressor';
-import { IncidentType, Incident } from '@/types/database';
+import { detectDuplicates } from '@/utils/duplicateDetector';
+import { confirmIncident, uploadIncidentPhoto } from '@/services/incidentService';
+import { DuplicateWarningModal } from '@/components/incidents/DuplicateWarningModal';
+import { IncidentType, Incident, DuplicateMatch } from '@/types/database';
 import {
   AlertTriangle,
   Flame,
@@ -46,12 +49,16 @@ export const ReportPage: React.FC = () => {
 
   // Photo state
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [_photoBlob, setPhotoBlob] = useState<Blob | null>(null);
+  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
 
   // Form submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Duplicate detection state
+  const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -75,88 +82,172 @@ export const ReportPage: React.FC = () => {
     setPhotoBlob(null);
   };
 
+  const saveIncidentRecord = async () => {
+    const clientId = generateClientId();
+    const now = new Date().toISOString();
+    const locationText = formatPoint(coords.lng, coords.lat);
+
+    const incidentRecord: Incident = {
+      id: clientId,
+      client_id: clientId,
+      type,
+      severity,
+      status: 'reported',
+      description: description.trim() || null,
+      address_label: addressLabel.trim() || null,
+      people_affected: peopleAffected,
+      location: locationText,
+      is_sos: false,
+      confirmations: 1,
+      duplicate_of: null,
+      reported_by: user?.id || null,
+      assigned_to: null,
+      created_at: now,
+      updated_at: now,
+      resolved_at: null,
+      deleted_at: null,
+      lng: coords.lng,
+      lat: coords.lat,
+    };
+
+    // 1. Optimistic write to Dexie IndexedDB cache immediately
+    await db.incidents.put(incidentRecord);
+
+    // Initial timeline entry in local Dexie
+    await db.incident_updates.put({
+      id: Date.now(),
+      incident_id: clientId,
+      author: user?.id || null,
+      kind: 'status_change',
+      old_status: null,
+      new_status: 'reported',
+      note: 'Incident reported',
+      created_at: now,
+    });
+
+    // 2. Put into Dexie Outbox for sync engine
+    const outboxPayload = {
+      client_id: clientId,
+      type,
+      severity,
+      status: 'reported',
+      description: description.trim() || null,
+      address_label: addressLabel.trim() || null,
+      people_affected: peopleAffected,
+      location: locationText,
+      is_sos: false,
+      confirmations: 1,
+      reported_by: user?.id || null,
+    };
+
+    await db.outbox.add({
+      table: 'incidents',
+      op: 'INSERT',
+      payload: outboxPayload,
+      clientId,
+      createdAt: now,
+      attempts: 0,
+      status: 'pending',
+      is_sos: false,
+    });
+
+    // 3. If online, attempt direct upsert
+    if (isOnline) {
+      try {
+        const { error: upsertError } = await supabase
+          .from('incidents')
+          .upsert(outboxPayload, { onConflict: 'client_id', ignoreDuplicates: true });
+
+        if (!upsertError) {
+          await db.outbox.where('clientId').equals(clientId).modify({ status: 'synced' });
+        }
+      } catch (networkErr) {
+        console.warn('Network write deferred to outbox sync:', networkErr);
+      }
+    }
+
+    // 4. If photo is attached, save to local media and upload/queue
+    if (photoBlob && photoPreview) {
+      await uploadIncidentPhoto({
+        incidentId: clientId,
+        blob: photoBlob,
+        dataUrl: photoPreview,
+        userId: user?.id || clientId,
+        isOnline,
+      });
+    }
+
+    navigate('/');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setIsSubmitting(true);
 
     try {
-      const clientId = generateClientId();
-      const now = new Date().toISOString();
-      const locationText = formatPoint(coords.lng, coords.lat);
-
-      const incidentRecord: Incident = {
-        id: clientId,
-        client_id: clientId,
+      // Check for duplicates (online RPC or offline Dexie comparison)
+      const foundDuplicates = await detectDuplicates({
         type,
-        severity,
-        status: 'reported',
-        description: description.trim() || null,
-        address_label: addressLabel.trim() || null,
-        people_affected: peopleAffected,
-        location: locationText,
-        is_sos: false,
-        confirmations: 1,
-        duplicate_of: null,
-        reported_by: user?.id || null,
-        assigned_to: null,
-        created_at: now,
-        updated_at: now,
-        resolved_at: null,
-        deleted_at: null,
         lng: coords.lng,
         lat: coords.lat,
-      };
-
-      // 1. Optimistic write to Dexie IndexedDB cache immediately
-      await db.incidents.put(incidentRecord);
-
-      // 2. Put into Dexie Outbox for sync engine
-      const outboxPayload = {
-        client_id: clientId,
-        type,
-        severity,
-        status: 'reported',
-        description: description.trim() || null,
-        address_label: addressLabel.trim() || null,
-        people_affected: peopleAffected,
-        location: locationText,
-        is_sos: false,
-        confirmations: 1,
-        reported_by: user?.id || null,
-      };
-
-      await db.outbox.add({
-        table: 'incidents',
-        op: 'INSERT',
-        payload: outboxPayload,
-        clientId,
-        createdAt: now,
-        attempts: 0,
-        status: 'pending',
-        is_sos: false,
+        description,
+        isOnline,
       });
 
-      // 3. If online, attempt direct upsert
-      if (isOnline) {
-        try {
-          const { error: upsertError } = await supabase
-            .from('incidents')
-            .upsert(outboxPayload, { onConflict: 'client_id', ignoreDuplicates: true });
-
-          if (!upsertError) {
-            // Update outbox entry to synced
-            await db.outbox.where('clientId').equals(clientId).modify({ status: 'synced' });
-          }
-        } catch (networkErr) {
-          console.warn('Network write deferred to outbox sync:', networkErr);
-        }
+      if (foundDuplicates.length > 0) {
+        setDuplicates(foundDuplicates);
+        setShowDuplicateModal(true);
+        setIsSubmitting(false);
+        return;
       }
 
-      // Navigate back to map to view report
-      navigate('/');
+      // No duplicates found, save directly
+      await saveIncidentRecord();
     } catch (err: any) {
       console.error('Failed to submit incident:', err);
+      setErrorMessage(err?.message || 'Failed to save incident report');
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleConfirmExisting = async (duplicateId: string) => {
+    setIsSubmitting(true);
+    try {
+      await confirmIncident({
+        incidentId: duplicateId,
+        userId: user?.id || generateClientId(),
+        note: description.trim() || 'Added confirmation via duplicate check',
+        isOnline,
+      });
+
+      // If user also attached a photo, upload it to the existing incident
+      if (photoBlob && photoPreview) {
+        await uploadIncidentPhoto({
+          incidentId: duplicateId,
+          blob: photoBlob,
+          dataUrl: photoPreview,
+          userId: user?.id || generateClientId(),
+          isOnline,
+        });
+      }
+
+      setShowDuplicateModal(false);
+      navigate('/');
+    } catch (err: any) {
+      console.error('Failed to confirm existing report:', err);
+      setErrorMessage(err?.message || 'Failed to confirm existing incident');
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleForceSubmitAsNew = async () => {
+    setShowDuplicateModal(false);
+    setIsSubmitting(true);
+    try {
+      await saveIncidentRecord();
+    } catch (err: any) {
+      console.error('Failed to save new incident:', err);
       setErrorMessage(err?.message || 'Failed to save incident report');
       setIsSubmitting(false);
     }
@@ -461,6 +552,17 @@ export const ReportPage: React.FC = () => {
           </p>
         </div>
       </form>
+
+      {/* Duplicate Warning Modal */}
+      {showDuplicateModal && (
+        <DuplicateWarningModal
+          duplicates={duplicates}
+          onConfirmExisting={handleConfirmExisting}
+          onSubmitAsNew={handleForceSubmitAsNew}
+          onCancel={() => setShowDuplicateModal(false)}
+          isProcessing={isSubmitting}
+        />
+      )}
     </div>
   );
 };
