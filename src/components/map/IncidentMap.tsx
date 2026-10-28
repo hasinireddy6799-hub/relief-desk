@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect,useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } from 'react-leaflet';
 import Supercluster from 'supercluster';
 import { Incident } from '@/types/database';
@@ -21,7 +21,8 @@ function RecenterMap({ coords }: { coords: { lng: number; lat: number } }) {
   const map = useMap();
   useEffect(() => {
     map.setView([coords.lat, coords.lng], map.getZoom());
-  }, [coords, map]);
+  // }, [coords, map]);
+    }, [coords.lat, coords.lng, map]);
   return null;
 }
 
@@ -79,6 +80,19 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({
   const [zoom, setZoom] = useState<number>(13);
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
   const [useRadarFallback, setUseRadarFallback] = useState<boolean>(false);
+    // Stable handler: same function every render, and it skips updates when nothing changed
+  const handleBoundsChange = useCallback(
+    (b: [number, number, number, number], z: number) => {
+      setBounds((prev) =>
+        prev[0] === b[0] && prev[1] === b[1] && prev[2] === b[2] && prev[3] === b[3]
+          ? prev
+          : b
+      );
+      setZoom((prev) => (prev === z ? prev : z));
+    },
+    []
+  );
+
 
   // Initialize Supercluster
   const supercluster = useMemo(() => {
@@ -154,11 +168,10 @@ export const IncidentMap: React.FC<IncidentMapProps> = ({
         />
 
         <MapEventListener
-          onBoundsChange={(b, z) => {
-            setBounds(b);
-            setZoom(z);
-          }}
-        />
+          // onBoundsChange=
+                      onBoundsChange={handleBoundsChange} />    
+         
+        
 
         <RecenterMap coords={userCoords} />
 

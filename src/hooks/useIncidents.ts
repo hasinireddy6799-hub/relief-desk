@@ -11,7 +11,23 @@ export interface IncidentFilters {
   status: IncidentStatus | 'open' | 'all';
   searchQuery: string;
 }
+// The nearby_incidents RPC returns no client_id or description, so it can't be merged safely.
+const USE_RPC: boolean = false;
 
+// Remove local copies that the server now has, so one report never shows twice
+async function mergeRemoteIncidents(remote: Incident[]) {
+  const local = await db.incidents.toArray();
+  const staleIds: string[] = [];
+  for (const r of remote) {
+    for (const l of local) {
+      if (l.id !== r.id && l.client_id && l.client_id === r.client_id) {
+        staleIds.push(l.id);
+      }
+    }
+  }
+  if (staleIds.length > 0) await db.incidents.bulkDelete(staleIds);
+  await db.incidents.bulkPut(remote);
+}
 export function useIncidents(userCoords?: { lng: number; lat: number }) {
   const isOnline = useOnlineStatus();
   const [isFetchingServer, setIsFetchingServer] = useState(false);
@@ -40,7 +56,7 @@ export function useIncidents(userCoords?: { lng: number; lat: number }) {
       const isLowData = localStorage.getItem('relief_desk_low_data') === 'true';
       const radiusM = isLowData ? 2500 : 10000;
 
-      if (userCoords) {
+            if (userCoords && USE_RPC) {
         // Attempt nearby_incidents RPC
         const { data: rpcData, error: rpcError } = await supabase.rpc('nearby_incidents', {
           p_lng: userCoords.lng,
@@ -97,7 +113,7 @@ export function useIncidents(userCoords?: { lng: number; lat: number }) {
       }
 
       if (remoteIncidents.length > 0) {
-        await db.incidents.bulkPut(remoteIncidents);
+                await mergeRemoteIncidents(remoteIncidents);
       }
     } catch (err) {
       console.warn('Notice syncing incidents with server:', err);
@@ -129,7 +145,7 @@ export function useIncidents(userCoords?: { lng: number; lat: number }) {
               lng: parsed?.lng,
               lat: parsed?.lat,
             };
-            await db.incidents.put(item);
+            await mergeRemoteIncidents([item]);
           } else if (payload.eventType === 'DELETE') {
             await db.incidents.delete(payload.old.id);
           }
