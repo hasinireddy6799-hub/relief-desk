@@ -70,6 +70,9 @@ export class ReliefDeskDatabase extends Dexie {
       help_requests: 'id, client_id, category, urgency, status, created_at',
       missing_persons: 'id, client_id, kind, status, created_at',
     });
+     this.version(3).stores({
+      shelter_checkins: 'id, shelter_id, checked_out_at',
+    });
   }
 }
 
