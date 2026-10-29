@@ -147,11 +147,20 @@ async function processOutboxItem(item: OutboxItem): Promise<void> {
       break;
     }
 
-    case 'shelter_checkins': {
-      const { error } = await supabase
-        .from('shelter_checkins')
-        .insert(payload);
-      if (error) throw error;
+        case 'shelter_checkins': {
+      if (op === 'UPDATE') {
+        const { id, ...updates } = payload;
+        const { error } = await supabase
+          .from('shelter_checkins')
+          .update(updates)
+          .eq('id', id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('shelter_checkins')
+          .upsert(payload, { onConflict: 'id', ignoreDuplicates: true });
+        if (error) throw error;
+      }
       break;
     }
 
