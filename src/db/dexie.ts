@@ -41,6 +41,7 @@ export class ReliefDeskDatabase extends Dexie {
   incident_confirmations!: Table<IncidentConfirmation, string>;
   incident_media!: Table<IncidentMedia, string>;
   shelters!: Table<Shelter, string>;
+  shelter_checkins!: Table<any, string>;
   supplies!: Table<Supply, string>;
   alerts!: Table<Alert, string>;
   help_requests!: Table<HelpRequest, string>;
