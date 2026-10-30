@@ -132,10 +132,19 @@ async function processOutboxItem(item: OutboxItem): Promise<void> {
     }
 
     case 'help_requests': {
-      const { error } = await supabase
-        .from('help_requests')
-        .upsert(payload, { onConflict: 'client_id', ignoreDuplicates: true });
-      if (error) throw error;
+      if (op === 'UPDATE') {
+        const { id, ...updates } = payload;
+        const { error } = await supabase
+          .from('help_requests')
+          .update(updates)
+          .eq('id', id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('help_requests')
+          .upsert(payload, { onConflict: 'client_id', ignoreDuplicates: true });
+        if (error) throw error;
+      }
       break;
     }
 
