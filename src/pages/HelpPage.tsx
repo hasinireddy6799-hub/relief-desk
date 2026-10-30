@@ -174,7 +174,7 @@ const RequestForm: React.FC = () => {
 
 const STATUS_LABELS: Record<string, string> = {
   open: 'Open',
-  matched: 'Claimed',
+    matched: 'Granted',
   in_progress: 'In progress',
   fulfilled: 'Fulfilled',
   cancelled: 'Cancelled',
