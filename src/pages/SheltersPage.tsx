@@ -7,6 +7,7 @@ import {
   ShelterRow,
   CheckinRow,
 } from '@/services/shelterService';
+import { SuppliesSection } from '@/components/SuppliesSection';
 
 function getStatus(s: ShelterRow) {
   const pct = s.capacity ? Math.min(100, Math.round((s.occupied / s.capacity) * 100)) : 0;
@@ -155,6 +156,7 @@ export const SheltersPage: React.FC = () => {
           canManage={isResponder}
         />
       ))}
+            {isResponder && <SuppliesSection />}
     </div>
   );
 };
