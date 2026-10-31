@@ -55,6 +55,7 @@ export const ReportPage: React.FC = () => {
   // Form submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Duplicate detection state
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
@@ -81,11 +82,15 @@ export const ReportPage: React.FC = () => {
     setPhotoPreview(null);
     setPhotoBlob(null);
   };
-
+  const showSuccessAndGo = (msg: string) => {
+    setSuccessMessage(msg);
+    setTimeout(() => navigate('/'), 2500);
+  };
   const saveIncidentRecord = async () => {
     const clientId = generateClientId();
     const now = new Date().toISOString();
     const locationText = formatPoint(coords.lng, coords.lat);
+    
 
     const incidentRecord: Incident = {
       id: clientId,
@@ -233,7 +238,7 @@ export const ReportPage: React.FC = () => {
       }
 
       setShowDuplicateModal(false);
-      navigate('/');
+showSuccessAndGo('Thanks! Your confirmation was added to the existing report and responders have been notified.');
     } catch (err: any) {
       console.error('Failed to confirm existing report:', err);
       setErrorMessage(err?.message || 'Failed to confirm existing incident');
@@ -262,7 +267,7 @@ export const ReportPage: React.FC = () => {
           {t('nav.report')} Hazard or Incident
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Reports are saved locally and synced to all responders as soon as connected.
+Your report is shared live with responders and shown on the map.
         </p>
       </div>
 
@@ -271,7 +276,20 @@ export const ReportPage: React.FC = () => {
           {errorMessage}
         </div>
       )}
-
+{successMessage && (
+  <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 p-4">
+    <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-emerald-500 shadow-2xl p-6 text-center space-y-3">
+      <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto" />
+      <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">
+        Report Submitted
+      </h2>
+      <p className="text-sm text-slate-600 dark:text-slate-300">
+        {successMessage}
+      </p>
+      <p className="text-[11px] text-slate-400">Taking you to the live map…</p>
+    </div>
+  </div>
+)}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Incident Type Selection */}
         <div>
@@ -549,6 +567,7 @@ export const ReportPage: React.FC = () => {
           </button>
           <p className="text-center text-[11px] text-slate-400 dark:text-slate-500 mt-2">
             Available immediately offline and broadcasted upon reconnection.
+            Responders are notified as soon as you submit.
           </p>
         </div>
       </form>
