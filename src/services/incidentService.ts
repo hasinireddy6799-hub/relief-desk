@@ -321,12 +321,17 @@ export async function uploadIncidentPhoto(params: {
             upsert: true,
           });
 
-        if (!uploadError) {
+       
+                if (uploadError) {
+          console.error('Photo upload failed:', uploadError);
+        } else {
           const { error: tableError } = await supabase
             .from('incident_media')
             .insert(payload);
 
-          if (!tableError) {
+          if (tableError) {
+            console.error('incident_media insert failed:', tableError);
+          } else {
             await db.outbox.where('clientId').equals(mediaId).modify({ status: 'synced' });
           }
         }
